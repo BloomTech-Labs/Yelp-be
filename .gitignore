@@ -2,6 +2,8 @@ virt
 
 .vscode
 
-.elasticbeanstalk
+
 
 .ebignore
+
+.env
