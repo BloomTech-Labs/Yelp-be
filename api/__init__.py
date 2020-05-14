@@ -1,4 +1,4 @@
-"""make API folder a module"""
+"""api entrypoint."""
 
 from api.app import create_app
 
