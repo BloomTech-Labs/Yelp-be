@@ -14,6 +14,7 @@ torch = "*"
 python-dotenv = "*"
 wtforms = "*"
 marshmallow = "*"
+boto3 = "*"
 
 [requires]
 python_version = "3.7"
