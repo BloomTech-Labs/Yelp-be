@@ -12,7 +12,8 @@ load_dotenv()
 sentiment_schema = SentimentSchema()
 summary_schema = SummarySchema()
 
-app = Flask(__name__)
+# EB looks for an 'application' callable by default.
+application = Flask(__name__)
 
 config = {
     'bucket': 'yelpsense',
@@ -43,3 +44,11 @@ def summary():
         return predictor.t5_summary(text)
     elif request.form['model'] == 'bart':
         return predictor.bart_summary(text)
+
+
+# run the app.
+if __name__ == "__main__":
+    # Setting debug to True enables debug output. This line should be
+    # removed before deploying a production app.
+    application.debug = True
+    application.run()
