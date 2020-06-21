@@ -4,9 +4,9 @@ from flask import Flask
 from flask import request, abort
 from dotenv import load_dotenv
 
-from api.FormSchemas.Sentiment import SentimentSchema
-from api.FormSchemas.Summary import SummarySchema
-from api.Predictor import Predictor
+from FormSchemas.Sentiment import SentimentSchema
+from FormSchemas.Summary import SummarySchema
+from Predictor import Predictor
 
 load_dotenv()
 sentiment_schema = SentimentSchema()
@@ -22,7 +22,7 @@ config = {
 predictor = Predictor(config)
 
 
-@app.route('/sentiment', methods=['POST'])
+@application.route('/sentiment', methods=['POST'])
 def sentiment():
     errors = sentiment_schema.validate(request.form)
     if errors:
@@ -32,7 +32,7 @@ def sentiment():
     return predictor.sentiment(text)
 
 
-@app.route('/summary', methods=['POST'])
+@application.route('/summary', methods=['POST'])
 def summary():
     errors = summary_schema.validate(request.form)
 
@@ -50,5 +50,5 @@ def summary():
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
-    application.debug = True
+    # application.debug = True
     application.run()
