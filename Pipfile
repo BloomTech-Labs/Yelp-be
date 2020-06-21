@@ -10,6 +10,10 @@ pylint = "*"
 tensorflow = "*"
 transformers = "*"
 flask = "*"
+torch = "*"
+python-dotenv = "*"
+wtforms = "*"
+marshmallow = "*"
 
 [requires]
 python_version = "3.7"
