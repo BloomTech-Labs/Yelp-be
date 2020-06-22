@@ -2,8 +2,11 @@ from flask import Flask, request
 from transformers import pipeline
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 import numpy as np
+from flask_cors import CORS
+
 
 app = Flask(__name__)
+CORS(app)
 
 
 """ Load all the models and such """
@@ -90,14 +93,14 @@ SUPPORTED_MODELS = {
 def validate_required_inputs(request):
     required = ['text', 'model_name']
     missing = missing = [
-        field for field in required if field not in request.form.keys()]
+        field for field in required if field not in request.keys()]
     if missing:
         err = {field: f"the {field} field is required" for field in missing}
         return err, 422
 
 
 def validate_model_name(request, model_type):
-    model_name = request.form['model_name']
+    model_name = request['model_name']
     if model_name not in SUPPORTED_MODELS[model_type].keys():
         err = {
             'model_name': f"{model_name} is not one of the supported models. {list(SUPPORTED_MODELS[model_type].keys())}"
@@ -116,12 +119,13 @@ def validate(request, model_type):
 
 
 def get_result(request, model_type):
-    valid = validate(request, model_type)
+    req_data = request.get_json()
+    valid = validate(req_data, model_type)
     if valid:
         return valid
 
-    text = request.form['text']
-    model_name = request.form['model_name']
+    text = req_data['text']
+    model_name = req_data['model_name']
 
     model = SUPPORTED_MODELS[model_type][model_name]
 

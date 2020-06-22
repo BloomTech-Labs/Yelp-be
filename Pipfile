@@ -15,6 +15,7 @@ python-dotenv = "*"
 wtforms = "*"
 marshmallow = "*"
 boto3 = "*"
+flask-cors = "*"
 
 [requires]
 python_version = "3.7"
