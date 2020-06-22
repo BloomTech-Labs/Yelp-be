@@ -5,37 +5,56 @@ import numpy as np
 
 app = Flask(__name__)
 
-sentiment = pipeline("sentiment-analysis")
+
+""" Load all the models and such """
+
+
+default_sentiment = pipeline("sentiment-analysis")
 bart_summarization = pipeline("summarization")
 t5_summarization = pipeline(
-    "summarization", model="t5", tokenizer="t5", framework="tf")
+    "summarization", model="t5-small", tokenizer="t5-small", framework="tf")
 
 
-tokenizer = AutoTokenizer.from_pretrained(
+distilbert_tokenizer = AutoTokenizer.from_pretrained(
     'distilbert-base-uncased', use_fast=True)
-model = TFAutoModelForSequenceClassification.from_pretrained(
+distilbert_regression_model = TFAutoModelForSequenceClassification.from_pretrained(
     "models/distilbert/regression")
 
 
-def predict(text):
-    return
+""" End of loading models and such """
+""" Define prediction and helper function """
 
 
-def scale(pred):
-    return
-
-
-def squish(scaled):
-    return
-
-
-def pred_scale_and_squish(text):
-    pred = model(tokenizer.encode(text, return_tensors='tf', max_length=512))[
+def distilbert_regression(text):
+    pred = distilbert_regression_model(distilbert_tokenizer.encode(text, return_tensors='tf', max_length=512))[
         0].numpy()[0][0]
     scaled = (pred - 1) * .25
     squished = np.clip(scaled, 0, 1)
 
-    return pred, scaled, squished
+    if squished > 0.5:
+        label = "POSITIVE"
+    else:
+        label = "NEGATIVE"
+
+    res = {
+        'label': label,
+        'score': float(squished),
+        'star': float(pred)
+    }
+
+    return [res]
+
+
+SUPPORTED_MODELS = {
+    'summarization': {
+        'bart': bart_summarization,
+        't5': t5_summarization
+    },
+    'sentiment': {
+        'distilbert-regression': distilbert_regression,
+        'default': default_sentiment
+    }
+}
 
 
 def old_summarize(ts, text, **generate_kwargs):
@@ -61,19 +80,62 @@ def old_summarize(ts, text, **generate_kwargs):
         )
 
         results.append(record)
-    return results
+    return results[0]
+
+
+def validate_required_inputs(request):
+    required = ['text', 'model_name']
+    missing = missing = [
+        field for field in required if field not in request.form.keys()]
+    if missing:
+        err = {field: f"the {field} field is required" for field in missing}
+        return err, 422
+
+
+def validate_model_name(request, model_type):
+    model_name = request.form['model_name']
+    if model_name not in SUPPORTED_MODELS[model_type].keys():
+        err = {
+            'model_name': f"{model_name} is not one of the supported models. {list(SUPPORTED_MODELS[model_type].keys())}"
+        }
+        return err, 422
+
+
+def validate(request, model_type):
+    valid_required = validate_required_inputs(request)
+    if valid_required:
+        return valid_required
+
+    valid_model = validate_model_name(request, model_type)
+    if valid_model:
+        return valid_model
+
+
+def get_result(request, model_type):
+    valid = validate(request, model_type)
+    if valid:
+        return valid
+
+    text = request.form['text']
+    model_name = request.form['model_name']
+
+    model = SUPPORTED_MODELS[model_type][model_name]
+
+    return model(text)[0]
+
+
+""" end of define prediction and helper function """
+""" Routes """
 
 
 @app.route('/sentiment', methods=['POST'])
 def get_sentiment():
-    text = request.form['text']
-    return sentiment(text)[0]
+    return get_result(request, 'sentiment')
 
 
 @app.route('/summarization', methods=['POST'])
 def get_summarization():
-    text = request.form['text']
-    return summarization(text)[0]
+    return get_result(request, 'summarization')
 
 
 @app.route('/')
