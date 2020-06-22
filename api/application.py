@@ -25,6 +25,36 @@ distilbert_regression_model = TFAutoModelForSequenceClassification.from_pretrain
 """ Define prediction and helper function """
 
 
+class Summarization:
+    def __init__(self, model):
+        self.model = model
+
+    def __call__(self, text, **generate_kwargs):
+        # Add prefix to text
+        prefix = self.model.model.config.prefix if self.model.model.config.prefix is not None else ""
+        documents = (prefix + text,)
+
+        # tokenize
+        inputs = self.model.tokenizer.encode_plus(
+            *documents,
+            return_tensors=self.model.framework,
+            max_length=self.model.tokenizer.max_len
+        )
+
+        summaries = self.model.model.generate(
+            inputs["input_ids"], attention_mask=inputs["attention_mask"], **generate_kwargs,
+        )
+        results = []
+        for summary in summaries:
+            record = {}
+            record["summary_text"] = self.model.tokenizer.decode(
+                summary, skip_special_tokens=True, clean_up_tokenization_spaces=True,
+            )
+
+            results.append(record)
+        return results
+
+
 def distilbert_regression(text):
     pred = distilbert_regression_model(distilbert_tokenizer.encode(text, return_tensors='tf', max_length=512))[
         0].numpy()[0][0]
@@ -47,40 +77,14 @@ def distilbert_regression(text):
 
 SUPPORTED_MODELS = {
     'summarization': {
-        'bart': bart_summarization,
-        't5': t5_summarization
+        'bart': Summarization(bart_summarization),
+        't5': Summarization(t5_summarization)
     },
     'sentiment': {
         'distilbert-regression': distilbert_regression,
         'default': default_sentiment
     }
 }
-
-
-def old_summarize(ts, text, **generate_kwargs):
-    # Add prefix to text
-    prefix = ts.model.config.prefix if ts.model.config.prefix is not None else ""
-    documents = (prefix + text,)
-
-    # tokenize
-    inputs = ts.tokenizer.encode_plus(
-        *documents,
-        return_tensors='tf',
-        max_length=ts.tokenizer.max_len
-    )
-
-    summaries = ts.model.generate(
-        inputs["input_ids"], attention_mask=inputs["attention_mask"], **generate_kwargs,
-    )
-    results = []
-    for summary in summaries:
-        record = {}
-        record["summary_text"] = ts.tokenizer.decode(
-            summary, skip_special_tokens=True, clean_up_tokenization_spaces=True,
-        )
-
-        results.append(record)
-    return results[0]
 
 
 def validate_required_inputs(request):
