@@ -1,54 +1,81 @@
-import os
+from flask import Flask, request
+from transformers import pipeline
+from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
+import numpy as np
 
-from flask import Flask
-from flask import request, abort
-from dotenv import load_dotenv
+app = Flask(__name__)
 
-from FormSchemas.Sentiment import SentimentSchema
-from FormSchemas.Summary import SummarySchema
-from Predictor import Predictor
-
-load_dotenv()
-sentiment_schema = SentimentSchema()
-summary_schema = SummarySchema()
-
-# EB looks for an 'application' callable by default.
-application = Flask(__name__)
-
-config = {
-    'bucket': 'yelpsense',
-    'key': 'models/sentiment/distilbert/regression/model.tar.gz'
-}
-predictor = Predictor(config)
+sentiment = pipeline("sentiment-analysis")
+bart_summarization = pipeline("summarization")
+t5_summarization = pipeline(
+    "summarization", model="t5", tokenizer="t5", framework="tf")
 
 
-@application.route('/sentiment', methods=['POST'])
-def sentiment():
-    errors = sentiment_schema.validate(request.form)
-    if errors:
-        return errors, 422
+tokenizer = AutoTokenizer.from_pretrained(
+    'distilbert-base-uncased', use_fast=True)
+model = TFAutoModelForSequenceClassification.from_pretrained(
+    "models/distilbert/regression")
 
+
+def predict(text):
+    return
+
+
+def scale(pred):
+    return
+
+
+def squish(scaled):
+    return
+
+
+def pred_scale_and_squish(text):
+    pred = model(tokenizer.encode(text, return_tensors='tf', max_length=512))[
+        0].numpy()[0][0]
+    scaled = (pred - 1) * .25
+    squished = np.clip(scaled, 0, 1)
+
+    return pred, scaled, squished
+
+
+def old_summarize(ts, text, **generate_kwargs):
+    # Add prefix to text
+    prefix = ts.model.config.prefix if ts.model.config.prefix is not None else ""
+    documents = (prefix + text,)
+
+    # tokenize
+    inputs = ts.tokenizer.encode_plus(
+        *documents,
+        return_tensors='tf',
+        max_length=ts.tokenizer.max_len
+    )
+
+    summaries = ts.model.generate(
+        inputs["input_ids"], attention_mask=inputs["attention_mask"], **generate_kwargs,
+    )
+    results = []
+    for summary in summaries:
+        record = {}
+        record["summary_text"] = ts.tokenizer.decode(
+            summary, skip_special_tokens=True, clean_up_tokenization_spaces=True,
+        )
+
+        results.append(record)
+    return results
+
+
+@app.route('/sentiment', methods=['POST'])
+def get_sentiment():
     text = request.form['text']
-    return predictor.sentiment(text)
+    return sentiment(text)[0]
 
 
-@application.route('/summary', methods=['POST'])
-def summary():
-    errors = summary_schema.validate(request.form)
-
-    if errors:
-        return errors, 422
-
+@app.route('/summarization', methods=['POST'])
+def get_summarization():
     text = request.form['text']
-    if request.form['model'] == 't5':
-        return predictor.t5_summary(text)
-    elif request.form['model'] == 'bart':
-        return predictor.bart_summary(text)
+    return summarization(text)[0]
 
 
-# run the app.
-if __name__ == "__main__":
-    # Setting debug to True enables debug output. This line should be
-    # removed before deploying a production app.
-    # application.debug = True
-    application.run(host="0.0.0.0")
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
