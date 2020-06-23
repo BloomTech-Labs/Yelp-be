@@ -129,6 +129,20 @@ def get_result(request, model_type):
 
     model = SUPPORTED_MODELS[model_type][model_name]
 
+    if model_type == 'summarization':
+        min_length = model.model.model.config.min_length
+        max_length = model.model.model.config.max_length
+        if 'min_length' in req_data:
+            min_length = req_data['min_length']
+            if min_length < 10:
+                return {'min_length': 'Min length is too small'}
+        if 'max_length' in req_data:
+            if req_data['max_length'] > model.model.tokenizer.max_len:
+                return {'max_length': 'Max length is too big'}
+            max_length = req_data['max_length']
+
+        return model(text, min_length=min_length, max_length=max_length)[0]
+
     return model(text)[0]
 
 
