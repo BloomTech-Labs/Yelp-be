@@ -1,0 +1,21 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+
+[packages]
+tensorflow = "*"
+transformers = "*"
+flask = "*"
+torch = "*"
+python-dotenv = "*"
+wtforms = "*"
+marshmallow = "*"
+boto3 = "*"
+flask-cors = "*"
+
+[requires]
+python_version = "3.7"
