@@ -147,3 +147,7 @@ virt
 .DS_Store
 
 lightfm
+
+.vscode
+vscode
+.vscode/settings.json
