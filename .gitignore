@@ -145,3 +145,5 @@ dmypy.json
 
 virt
 .DS_Store
+
+lightfm
