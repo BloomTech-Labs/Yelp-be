@@ -1,16 +1,22 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from transformers import pipeline
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 import numpy as np
 from flask_cors import CORS
+
+import pandas
+
+from api.lightfm_functions import get_lightfm_model, get_lightfm_dataset, make_lightfm_user_set, lightfm_inference, select_from_db
+
+import os
 
 
 app = Flask(__name__)
 CORS(app)
 
 
-""" Load all the models and such """
 
+""" Load all the models and such """
 
 default_sentiment = pipeline("sentiment-analysis")
 bart_summarization = pipeline("summarization")
@@ -22,6 +28,13 @@ distilbert_tokenizer = AutoTokenizer.from_pretrained(
     'distilbert-base-uncased', use_fast=True)
 distilbert_regression_model = TFAutoModelForSequenceClassification.from_pretrained(
     "models/distilbert/regression")
+
+# make a directory to download lightfm models to
+os.mkdir('./lightfm/')
+
+# get lightFM model and dataset objects
+lightFM_model = get_lightfm_model()
+lightFM_dataset = get_lightfm_dataset()
 
 
 """ End of loading models and such """
@@ -163,3 +176,37 @@ def get_summarization():
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
+
+@app.route('/business_info/', methods=['GET'])
+    def business_info():
+        """search the business db for businesses matching query parameters."""
+
+        city = request.args.get('city')
+        name = request.args.get('name')
+        address = request.args.get('address')
+        categories = request.args.get('categories')
+
+        if city is None: city = ''
+        if name is None: name = ''
+        if address is None: address = ''
+        if categories is None: categories = ''
+
+
+        response = select_from_db(city=city, business_name=name, address=address, category=categories)
+        labeled = [dict(zip(['business_id', 'name', 'address', 'city', 'aggregate_rating', 'categories'],element)) for element in response]
+        return jsonify(labeled)
+
+@application.route('/infer_recommendations/', methods=['GET'])
+    def infer_recommendations():
+        """given a list of business ids, infer recommendations."""
+
+        train_business_ids = request.args.getlist('business_ids')
+        train_stars = [int(x) for x in request.args.getlist('stars')]
+
+        user_set, user_shape = make_lightfm_user_set(dataset=lightFM_dataset,businesses=train_business_ids, stars=train_stars)
+
+        predictions = lightfm_inference(lightFM_model, user_set, user_shape)
+
+        output = [dict(zip(['business_id', 'name', 'address', 'city', 'aggregate_rating', 'categories', 'recommender_score'],element)) for element in predictions.itertuples(index=False)]
+
+        return jsonify(output)

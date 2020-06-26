@@ -16,6 +16,9 @@ wtforms = "*"
 marshmallow = "*"
 boto3 = "*"
 flask-cors = "*"
+psycopg2-binary = "*"
+pandas = "*"
+lightfm = "*"
 
 [requires]
 python_version = "3.7"
