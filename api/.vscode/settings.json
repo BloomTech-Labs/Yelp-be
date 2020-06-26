@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "/Users/spenceradams/.local/share/virtualenvs/Yelp-be-opFVO-24/bin/python",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "python.formatting.autopep8Args": [
+        "-a",
+        "-a"
+    ]
+}
