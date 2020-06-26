@@ -33,7 +33,9 @@ def get_lightfm_model():
     )
 
     S3.download_file(
-        'yelpsense', 'models/recommender/lightfm/lightfm_model.p', './lightfm/lightfm_model.p')
+        'yelpsense',
+        'models/recommender/lightfm/lightfm_model.p',
+        './lightfm/lightfm_model.p')
 
     model = pickle.load(open("./lightfm/lightfm_model.p", "rb"))
     return model
@@ -49,8 +51,10 @@ def get_lightfm_dataset():
         aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY")
     )
 
-    S3.download_file('yelpsense', 'models/recommender/lightfm/lightfm_empty_dataset.p',
-                     './lightfm/lightfm_empty_dataset.p')
+    S3.download_file(
+        'yelpsense',
+        'models/recommender/lightfm/lightfm_empty_dataset.p',
+        './lightfm/lightfm_empty_dataset.p')
 
     empty_dataset = pickle.load(
         open("./lightfm/lightfm_empty_dataset.p", "rb"))
@@ -72,9 +76,8 @@ def make_lightfm_user_set(dataset, businesses, stars):
 
     # get an empty but shaped dataset and populate with interactions
     user_dataset = copy.deepcopy(dataset)
-    (user_interactions, weights) = user_dataset.build_interactions([(x['user_id'],
-                                                                     x['business_id'],
-                                                                     x['recommend']) for index, x in userframe.iterrows()])
+    (user_interactions, weights) = user_dataset.build_interactions(
+        [(x['user_id'], x['business_id'], x['recommend']) for index, x in userframe.iterrows()])
 
     return (user_interactions, user_dataset)
 
@@ -112,11 +115,21 @@ def lightfm_inference(model, user_interactions, user_dataset):
     businessframe['lightFM_mapping'] = businessframe['business_id'].apply(
         lambda x: user_dataset._item_id_mapping[x])
 
-    businessframe['recommender_values'] = model.predict(user_ids=[user_dataset._user_id_mapping['new_user']],
-                                                        item_ids=list(businessframe['lightFM_mapping'].values), num_threads=1)
+    businessframe['recommender_values'] = model.predict(
+        user_ids=[
+            user_dataset._user_id_mapping['new_user']],
+        item_ids=list(
+            businessframe['lightFM_mapping'].values),
+        num_threads=1)
 
-    top_ten = businessframe[['business_id', 'name', 'address', 'city', 'aggregate_rating',
-                             'categories', 'recommender_values']].sort_values(by='recommender_values', ascending=False)
+    top_ten = businessframe[['business_id',
+                             'name',
+                             'address',
+                             'city',
+                             'aggregate_rating',
+                             'categories',
+                             'recommender_values']].sort_values(by='recommender_values',
+                                                                ascending=False)
 
     return top_ten
 

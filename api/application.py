@@ -61,22 +61,23 @@ class Summarization:
         )
 
         summaries = self.model.model.generate(
-            inputs["input_ids"], attention_mask=inputs["attention_mask"], **generate_kwargs,
+            inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            **generate_kwargs,
         )
         results = []
         for summary in summaries:
             record = {}
             record["summary_text"] = self.model.tokenizer.decode(
-                summary, skip_special_tokens=True, clean_up_tokenization_spaces=True,
-            )
+                summary, skip_special_tokens=True, clean_up_tokenization_spaces=True, )
 
             results.append(record)
         return results
 
 
 def distilbert_regression(text):
-    pred = distilbert_regression_model(distilbert_tokenizer.encode(text, return_tensors='tf', max_length=512))[
-        0].numpy()[0][0]
+    pred = distilbert_regression_model(distilbert_tokenizer.encode(
+        text, return_tensors='tf', max_length=512))[0].numpy()[0][0]
     scaled = (pred - 1) * .25
     squished = np.clip(scaled, 0, 1)
 
@@ -136,9 +137,9 @@ def validate(request, model_type):
 
 def get_result(request, model_type):
     req_data = request.get_json()
-    valid = validate(req_data, model_type)
-    if valid:
-        return valid
+    invalid = validate(req_data, model_type)
+    if invalid:
+        return invalid
 
     text = req_data['text']
     model_name = req_data['model_name']
@@ -180,6 +181,7 @@ def get_summarization():
 def hello_world():
     return 'Hello, World!'
 
+
 @app.route('/business_info/', methods=['GET'])
 def business_info():
     """search the business db for businesses matching query parameters."""
@@ -189,15 +191,29 @@ def business_info():
     address = request.args.get('address')
     categories = request.args.get('categories')
 
-    if city is None: city = ''
-    if name is None: name = ''
-    if address is None: address = ''
-    if categories is None: categories = ''
+    if city is None:
+        city = ''
+    if name is None:
+        name = ''
+    if address is None:
+        address = ''
+    if categories is None:
+        categories = ''
 
-
-    response = select_from_db(city=city, business_name=name, address=address, category=categories)
-    labeled = [dict(zip(['business_id', 'name', 'address', 'city', 'aggregate_rating', 'categories'],element)) for element in response]
+    response = select_from_db(
+        city=city,
+        business_name=name,
+        address=address,
+        category=categories)
+    labeled = [dict(zip(['business_id',
+                         'name',
+                         'address',
+                         'city',
+                         'aggregate_rating',
+                         'categories'],
+                        element)) for element in response]
     return jsonify(labeled)
+
 
 @app.route('/infer_recommendations/', methods=['GET'])
 def infer_recommendations():
@@ -206,10 +222,18 @@ def infer_recommendations():
     train_business_ids = request.args.getlist('business_ids')
     train_stars = [int(x) for x in request.args.getlist('stars')]
 
-    user_set, user_shape = make_lightfm_user_set(dataset=lightFM_dataset,businesses=train_business_ids, stars=train_stars)
+    user_set, user_shape = make_lightfm_user_set(
+        dataset=lightFM_dataset, businesses=train_business_ids, stars=train_stars)
 
     predictions = lightfm_inference(lightFM_model, user_set, user_shape)
 
-    output = [dict(zip(['business_id', 'name', 'address', 'city', 'aggregate_rating', 'categories', 'recommender_score'],element)) for element in predictions.itertuples(index=False)]
+    output = [dict(zip(['business_id',
+                        'name',
+                        'address',
+                        'city',
+                        'aggregate_rating',
+                        'categories',
+                        'recommender_score'],
+                       element)) for element in predictions.itertuples(index=False)]
 
     return jsonify(output)
