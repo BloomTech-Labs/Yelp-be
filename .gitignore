@@ -144,3 +144,4 @@ dmypy.json
 !.elasticbeanstalk/*.global.yml
 
 virt
+.DS_Store
