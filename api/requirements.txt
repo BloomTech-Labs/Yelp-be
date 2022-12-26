@@ -65,7 +65,7 @@ tqdm==4.46.1
 transformers==2.11.0
 urllib3==1.25.9
 werkzeug==1.0.1
-wheel==0.34.2; python_version >= '3'
+wheel==0.38.1; python_version >= '3'
 wrapt==1.12.1
 wtforms==2.3.1
 zipp==3.1.0
